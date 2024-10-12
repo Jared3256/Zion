@@ -17,6 +17,7 @@ const roles = {
   manager: ["create", "read", "update", "delete", "download", "upload"],
   employee: ["create", "read", "update", "download", "upload"],
   staff: ["create", "read", "update", "download", "upload"],
+  Employee: ["create", "read", "update", "download", "upload"],
   create_only: ["create", "read", "download", "upload"],
   read_only: ["read", "download"],
 };
@@ -34,15 +35,14 @@ exports.hasPermission = (permissionName = "none") => {
 
     const token = authHeader.split(" ")[1];
     const decoded = jwt.decode(token);
-    console.log(decoded);
     let active_role = decoded.UserInfo.active_role;
     console.log("Active", active_role);
     const currentUserRole = active_role;
 
     if (
-      roles[currentUserRole]?.includes(permissionName) ||
-      req.admin.role === "owner" ||
-      req.admin.role === "admin"
+      roles[currentUserRole]?.includes(permissionName)
+      // req.admin.active_role === "owner" ||
+      // req.admin.active_role === "admin"
     ) {
       next();
     } else {

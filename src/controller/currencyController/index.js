@@ -1,5 +1,3 @@
-const mongoose = require("mongoose");
-
 const createCRUDController = require("../middlewareController/createCRUDController");
 
 const remove = require("./remove");

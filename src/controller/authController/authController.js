@@ -35,6 +35,12 @@ const login = asyncHandler(async (req, res) => {
     return res.status(401).json("Invalid password provided.");
   }
 
+  // Save the active role in the user instance
+  const active_role = foundUser.roles[foundUser.roles.length - 1];
+  foundUser.active_role = active_role;
+
+  await foundUser.save();
+
   // Access Token with 20 seconds to live
   const accessToken = jwt.sign(
     {
@@ -46,11 +52,11 @@ const login = asyncHandler(async (req, res) => {
         bio: foundUser.bio,
         active: foundUser.active,
         timezone: foundUser.timezone,
-        active_role: foundUser.roles[foundUser.roles.length - 1],
+        active_role: active_role,
       },
     },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "1h" }
+    { expiresIn: "30min" }
   );
 
   // refresh token
@@ -74,20 +80,42 @@ const login = asyncHandler(async (req, res) => {
     http: true,
     secure: true,
     sameSite: "None",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: 12 * 60 * 60 * 1000, //12 hour maximum time to live,
   });
 
   // sendAccessToken({accessToken})
   res.json({ accessToken });
 });
 
+// @desc change_role
+// @router PUT /auth/change_role
+// @access Private
+const change_role = asyncHandler(async (req, res) => {
+  const { username, role } = req.body;
+
+  if (!role || !username) {
+    return res.status(400).json({ message: "Invalid request" });
+  }
+
+  const foundUser = await User.findOne({ username });
+
+  if (!foundUser) {
+    return res.status(404).json({ message: "No user found" });
+  }
+
+  // update the found user role to match
+  foundUser.active_role = role;
+
+  // save the user back to the database
+  await foundUser.save();
+
+  res.json({ message: "role changed success" });
+});
+
 // @desc Refresh
 // @router POST /auth/refresh
 // @access Public
 const refresh = asyncHandler(async (req, res) => {
-  // Refresh method
-  const { changed_role } = req.query;
-
   const cookies = req.cookies;
 
   if (!cookies?.jwt) {
@@ -95,12 +123,13 @@ const refresh = asyncHandler(async (req, res) => {
   }
 
   const refreshToken = cookies.jwt;
+  console.log("🚀 ~ refresh ~ refreshToken:", refreshToken);
 
   jwt.verify(
     refreshToken,
     process.env.REFRESH_TOKEN_SECRET,
     asyncHandler(async (err, decoded) => {
-      if (err) return res.status(401).json({ message: "Forbidden" });
+      if (err) return res.status(401).json({ message: "Unauthorised Token" });
 
       const foundUser = await User.findOne({ username: decoded.username });
 
@@ -118,12 +147,11 @@ const refresh = asyncHandler(async (req, res) => {
             bio: foundUser.bio,
             active: foundUser.active,
             timezone: foundUser.timezone,
-            active_role:
-              changed_role || foundUser.roles[foundUser.roles.length - 1],
+            active_role: foundUser.active_role,
           },
         },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "1h" }
+        { expiresIn: "30min" }
       );
       res.json({ accessToken });
     })
@@ -182,7 +210,7 @@ const ResetPassword = asyncHandler(async (request, response) => {
   // Find user and changed the password
   const savedUser = await User.findOne({ username: email });
 
-  // necrypt the password
+  // encrypt the password
   const encryptPass = await bcrypt.hash(password, 16);
   console.log(encryptPass);
   savedUser.password = encryptPass;
@@ -193,46 +221,30 @@ const ResetPassword = asyncHandler(async (request, response) => {
 
   await ResetCode.findByIdAndDelete(id);
 
-  response.json({ message: `Password Reset Sucess` });
+  response.json({ message: `Password Reset Success` });
 });
 
 // @desc Logout
 // @router POST /auth/logout
 // @access Public
 const logout = asyncHandler(async (req, res) => {
+  console.log("Logout received");
   // Logout method
   const cookies = req.cookies;
-  console.log(req.cookies);
+  console.log("🚀 ~ logout ~ cookies:", cookies);
 
   if (!cookies?.jwt) {
-    return res.status(204);
+    console.log("🚀 ~ logout ~ cookies?.jwt:", cookies?.jwt);
+    return res.status(204).json({ message: "No token received", cookies });
   }
 
-  res.clearCookie("token", {
-    maxAge: null,
-    sameSite: "none",
-    httpOnly: true,
-    secure: true,
-    domain: req.hostname,
-    Path: "/",
-  });
-  res.clearCookie(
-    "jwt",
-    res.clearCookie("token", {
-      maxAge: null,
-      sameSite: "none",
-      httpOnly: true,
-      secure: true,
-      domain: req.hostname,
-      Path: "/",
-    })
-  );
+  res.clearCookie("jwt", { httpOnly: true, sameSite: "None" });
 
-  console.log("Response", res.cookies);
   res.json({ message: "Logout successful" });
 });
 
 module.exports = {
+  change_role,
   login,
   refresh,
   logout,

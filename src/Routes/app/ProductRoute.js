@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const { hasPermission } = require("../../middleware/hasPermission");
 const productController = require("../../controller/productController");
+const verifyJwt = require("../../middleware/verifyJWT");
+
+router.use(verifyJwt);
 
 router.route("/list").get(hasPermission("read"), productController.listAll);
 

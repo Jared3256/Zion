@@ -48,7 +48,7 @@ const signup = asyncHandler(async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "User created sucessfully",
+      message: "User created successfully",
       user: {
         ...user._doc,
         password: null,
@@ -187,12 +187,13 @@ const resetpassword = asyncHandler(async (req, res) => {
 
   await user.save();
 
-  // send Password reset email sucesss
+  // send Password reset email success
 
   await sendResetSuccessEmail(user.email);
 
   return res.status(200).json({ message: "Password reset successful" });
 });
+
 module.exports = {
   signup,
   login,

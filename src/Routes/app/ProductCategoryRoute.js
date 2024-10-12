@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const { hasPermission } = require("../../middleware/hasPermission");
 const productCategoryController = require("../../controller/productCategoryController/productCategoryController");
+const verifyJwt = require("../../middleware/verifyJWT");
+
+router.use(verifyJwt);
 
 router
   .route("/list")

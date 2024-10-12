@@ -1,5 +1,4 @@
-const mongoose = require("mongoose");
-const Model = require("../../models/app/ProductCategory"); // mongoose.model("ProductCategory");
+const Model = require("../../models/app/ProductCategory");
 const asyncHandler = require("express-async-handler");
 
 const findModel = asyncHandler(async (req, res) => {
@@ -36,7 +35,10 @@ const createModel = asyncHandler(async (req, res) => {
   });
 });
 
-const deleteModel = asyncHandler((req, res) => {
+const deleteModel = asyncHandler(async (req, res) => {
+  const authHeader = req.headers;
+  console.log("🚀 ~ deleteModel ~ authHeader:", authHeader);
+
   return res.status(403).json({
     success: false,
     result: null,
